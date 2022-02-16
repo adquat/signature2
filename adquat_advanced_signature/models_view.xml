@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+
+  <record id="sale_order_form_view_adquat" model="ir.ui.view">
+      <field name="name">sale.order.form.addquat</field>
+      <field name="model">sale.order</field>
+      <field name="inherit_id" ref="sale.view_order_form"/>
+      <field name="arch" type="xml">
+        <xpath expr="//button[@name='action_quotation_send']" position="before">
+            <button name="create_project" string="Créer le projet" type="object"  class="btn-primary" data-hotkey="p" attrs="{'invisible': ['|',('state','not in',('draft','sent')),('project_ids', '!=', [])]}"/>
+        </xpath>
+      </field>
+  </record>
+    <record id="sale_order_form_view_adquat2" model="ir.ui.view">
+      <field name="name">sale.order.form.addquat2</field>
+        <field name="model">sale.order</field>
+        <field name="inherit_id" ref="sale_project.view_order_form_inherit_sale_project"/>
+        <field name="arch" type="xml">
+            <xpath expr="//button[@name='action_view_project_ids']" position="replace">
+                <button type="object" name="action_view_project_ids" class="oe_stat_button" icon="fa-puzzle-piece" attrs="{'invisible': [('project_ids', '=', [])]}" groups="project.group_project_manager">
+                    <field name="project_ids" invisible="1"/>
+                    <field name="project_count" widget="statinfo" string="Projects"/>
+                </button>
+            </xpath>
+        </field>
+    </record>
+</odoo>
