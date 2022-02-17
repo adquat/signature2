@@ -6,7 +6,7 @@
 ############################################################################################
 
 from odoo import _, api, fields, models
-from datetime import date, datetime, time, timedelta
+import datetime
 from odoo.tools import DEFAULT_SERVER_DATE_FORMAT, DEFAULT_SERVER_DATETIME_FORMAT
 
 class sale_order(models.Model):
@@ -22,17 +22,25 @@ class sale_order(models.Model):
                 order.order_line.sudo().with_company(order.company_id)._timesheet_service_generation()
         return True
 
-class res_partner(models.Model):
-    _inherit = "res.partner"
-    type_partner = fields.Selection([('prospect', 'Prospect'),('customer', 'Client'),('none','Aucun')],
-                                    compute='_compute_type_partner', string="Type de partenariat", store=False)
+class task(models.Model):
+    _inherit = "project.task"
 
-    @api.depends('opportunity_count', 'sale_order_ids', 'sale_order_ids.state')
-    def _compute_type_partner(self):
-        for record in self:
-            if any(order.state == "sale" for order in record.sale_order_ids):
-                self.type_partner = 'customer'
-            elif record.opportunity_count > 0:
-                self.type_partner = 'prospect'
+    def action_get_project_forecast_by_user(self):
+        allowed_tasks = (self | self._get_all_subtasks() | self.depend_on_ids)
+        action = self.env["ir.actions.actions"]._for_xml_id("project_forecast.project_forecast_action_schedule_by_employee")
+        first_slot = self.env['planning.slot'].search([('start_datetime', '>=', datetime.datetime.now()), ('task_id', 'in', allowed_tasks.ids)], limit=1, order="start_datetime")
+        action_context = {
+            'group_by': ['task_id', 'resource_id'],
+        }
+        if first_slot:
+            action_context.update({'initialDate': first_slot.start_datetime})
+        else:
+            if not allowed_tasks.mapped('planned_date_begin'):
+                min_date = datetime.datetime.now()
             else:
-                self.type_partner = 'none'
+                min_date = min(allowed_tasks.mapped('planned_date_begin'))
+            if min_date and min_date > datetime.datetime.now():
+                action_context.update({'initialDate': min_date})
+        action['context'] = action_context
+        action['domain'] = [('task_id', 'in', allowed_tasks.ids)]
+        return action
