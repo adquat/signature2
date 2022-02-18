@@ -25,6 +25,9 @@ class sale_order(models.Model):
 class task(models.Model):
     _inherit = "project.task"
 
+    planned_date_begin = fields.Datetime("Start date", tracking=True, task_dependency_tracking=True, default=lambda self: fields.Datetime.now())
+    planned_date_end = fields.Datetime("End date", tracking=True, task_dependency_tracking=True, default=lambda self: fields.Datetime.now() + datetime.timedelta(days=1))
+
     def action_get_project_forecast_by_user(self):
         allowed_tasks = (self | self._get_all_subtasks() | self.depend_on_ids)
         action = self.env["ir.actions.actions"]._for_xml_id("project_forecast.project_forecast_action_schedule_by_employee")
@@ -44,3 +47,14 @@ class task(models.Model):
         action['context'] = action_context
         action['domain'] = [('task_id', 'in', allowed_tasks.ids)]
         return action
+
+class saleorderline(models.Model):
+    _inherit = "sale.order.line"
+
+    def write(self, values):
+        res = super(saleorderline, self).write(values)
+        if 'customer_lead' in values:
+            for so in self:
+                so.move_ids.date_deadline = so.scheduled_date
+                so.move_ids.date = so.scheduled_date
+        return res
