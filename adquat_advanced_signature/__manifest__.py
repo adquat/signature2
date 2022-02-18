@@ -8,7 +8,7 @@
 
 {
     'name': 'Adquat Advanced Signature',
-    'version': '0.1',
+    'version': '0.2',
     'category': 'Tools',
     'description': """
     Ajouts divers
